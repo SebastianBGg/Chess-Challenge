@@ -1,11 +1,10 @@
 ﻿using ChessChallenge.API;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
 
 public class MyBot : IChessBot
 {
+    List<Move> bestmoves = new List<Move>();
     public Move Think(Board board, Timer timer)
     {
         bool white = false;
@@ -13,11 +12,10 @@ public class MyBot : IChessBot
         if (board.GetPiece(moves[0].StartSquare).IsWhite) { white = true; }
         foreach (Move move in moves)
         {
-
+            minimax(board, move, 3, white, true);
         }
-
-
-        return moves[0];
+        
+        return bestmoves[0];
     }
 
     // Took this from the evilbot code
@@ -91,7 +89,7 @@ public class MyBot : IChessBot
         {
             board.MakeMove(moves[0]);
             Move[] newmoves = board.GetLegalMoves();
-            board.UndoMove(move);
+            board.UndoMove(moves[0]);
             return newmoves;
         }
 
@@ -107,7 +105,7 @@ public class MyBot : IChessBot
         {
             board.MakeMove(moves[0]);
             Move[] newmoves = board.GetLegalMoves();
-            board.UndoMove(move);
+            board.UndoMove(moves[0]);
             return newmoves;
         }
     }
@@ -121,7 +119,7 @@ public class MyBot : IChessBot
         foreach (PieceList piece in pieceLists)
         {
 
-            if (piece.IsWhitePieceList)
+            if (piece.IsWhitePieceList) 
             {
                 whitepoi += pieceValues[(int)piece.TypeOfPieceInList];
             }
@@ -132,28 +130,40 @@ public class MyBot : IChessBot
         }
         return whitepoi - blackpoi;
     }
-    int minimax(Board board, Move move, int depth, bool maximizingPlayer)
+    int minimax(Board board, Move move, int depth, bool maximizingPlayer, bool firstfunc, int white = 3)
     {
         if (depth == 0) return 0;
         if (maximizingPlayer)
         {
-            int amaxEval = int.MinValue;
+            int eval;
+            int maxEval = int.MinValue;
             Move[] aMoves = GetWhiteMoves(board, move);
             foreach (Move amove in aMoves)
             {
-                int eval = minimax(board, amove, depth - 1, false);
-                amaxEval = Math.Max(amaxEval, eval);
+                board.MakeMove(amove);
+                if (firstfunc) { white = 1;  }
+                eval = minimax(board, amove, depth - 1, false, true);
+                if(white == 1) { if (eval > maxEval) { bestmoves.Add(move); } }
+                board.UndoMove(amove);
+                maxEval = Math.Max(maxEval, eval);
             }
-            return amaxEval;
+            
+            return maxEval;
 
         }
         else
         {
+            int eval;
             int minEval = int.MaxValue;
             Move[] bMoves = GetBlackeMoves(board, move);
-            foreach (Move bamove in bMoves)
+            foreach (Move bmove in bMoves)
             {
-                int eval = minimax(board, move, depth - 1, true);
+                board.MakeMove(bmove);
+                eval = minimax(board, bmove, depth - 1, true, false, white);
+                if (firstfunc){white = 2;}
+                if (white == 2) { if (eval > minEval) { bestmoves.Add(move); } }
+
+                board.UndoMove(bmove);
                 minEval = Math.Min(minEval, eval);
             }
             return minEval;
